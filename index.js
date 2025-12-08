@@ -9,7 +9,7 @@ app.use(bodyParser.json());
 app.use(express.static('public')); // for index.html
 
 // MySQL connection
-const db = mysql.createConnection({
+let db = mysql.createConnection({
     host: process.env.DB_HOST || 'mysql', // configurable for tests/CI
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || 'password',
@@ -138,4 +138,10 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, db, initDb };
+// allow tests to inject a mocked DB
+function setDb(newDb) {
+    db = newDb;
+}
+
+// export setDb so unit tests can replace the DB
+module.exports = { app, db, initDb, setDb };
