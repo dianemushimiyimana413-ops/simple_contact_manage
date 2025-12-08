@@ -16,18 +16,33 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME || 'contacts_db'
 });
 
-db.connect(err => {
-    if (err) throw err;
-    console.log('Connected to MySQL');
-    db.query(`CREATE TABLE IF NOT EXISTS contacts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255),
-        phone VARCHAR(50),
-        email VARCHAR(255)
-    )`, (err) => {
-        if (err) throw err;
-    });
-});
+// Replace top-level db.connect(...) with initDb so tests can import without triggering a real connection.
+function initDb(cb) {
+    if (db && typeof db.connect === 'function') {
+        db.connect(err => {
+            if (err) {
+                if (cb) return cb(err);
+                throw err;
+            }
+            console.log('Connected to MySQL');
+            db.query(`CREATE TABLE IF NOT EXISTS contacts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                phone VARCHAR(50),
+                email VARCHAR(255)
+            )`, (err) => {
+                if (err) {
+                    if (cb) return cb(err);
+                    throw err;
+                }
+                if (cb) cb(null);
+            });
+        });
+    } else {
+        // DB driver mocked or not providing connect (e.g. unit tests) — no-op but keep callback.
+        if (cb) process.nextTick(() => cb(null));
+    }
+}
 
 // Routes
 app.get('/contacts', (req, res) => {
@@ -97,8 +112,12 @@ app.get('/status', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
+// Start server only when run directly. Ensure DB is initialized first.
 if (require.main === module) {
-    app.listen(PORT, () => console.log(`Contact Manager running on port ${PORT}`));
+    initDb(err => {
+        if (err) throw err;
+        app.listen(PORT, () => console.log(`Contact Manager running on port ${PORT}`));
+    });
 }
 
-module.exports = { app, db };
+module.exports = { app, db, initDb };
