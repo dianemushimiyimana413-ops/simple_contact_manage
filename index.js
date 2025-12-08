@@ -44,10 +44,20 @@ function initDb(cb) {
     }
 }
 
+// Ensure DB initialization runs on import (safe because initDb no-ops when DB is mocked)
+initDb(err => {
+    if (err) {
+        // don't throw during import — log and allow tests to handle failures
+        console.error('initDb error:', err && err.message ? err.message : err);
+    }
+});
+
 // Routes
 app.get('/contacts', (req, res) => {
     db.query('SELECT * FROM contacts', (err, results) => {
-        if (err) throw err;
+        if (err) {
+            return res.status(500).json({ error: err.message || 'Database error' });
+        }
         res.json(results);
     });
 });
@@ -55,7 +65,9 @@ app.get('/contacts', (req, res) => {
 app.post('/contacts', (req, res) => {
     const { name, phone, email } = req.body;
     db.query('INSERT INTO contacts (name, phone, email) VALUES (?, ?, ?)', [name, phone, email], (err, result) => {
-        if (err) throw err;
+        if (err) {
+            return res.status(500).json({ error: err.message || 'Database error' });
+        }
         res.json({ id: result.insertId, name, phone, email });
     });
 });
@@ -64,7 +76,9 @@ app.put('/contacts/:id', (req, res) => {
     const { id } = req.params;
     const { name, phone, email } = req.body;
     db.query('UPDATE contacts SET name=?, phone=?, email=? WHERE id=?', [name, phone, email, id], (err) => {
-        if (err) throw err;
+        if (err) {
+            return res.status(500).json({ error: err.message || 'Database error' });
+        }
         res.json({ id, name, phone, email });
     });
 });
@@ -72,7 +86,9 @@ app.put('/contacts/:id', (req, res) => {
 app.delete('/contacts/:id', (req, res) => {
     const { id } = req.params;
     db.query('DELETE FROM contacts WHERE id=?', [id], (err) => {
-        if (err) throw err;
+        if (err) {
+            return res.status(500).json({ error: err.message || 'Database error' });
+        }
         res.json({ message: 'Deleted successfully' });
     });
 });
@@ -84,7 +100,9 @@ app.get('/contacts/search/:query', (req, res) => {
         'SELECT * FROM contacts WHERE name LIKE ? OR phone LIKE ? OR email LIKE ?',
         [searchQuery, searchQuery, searchQuery],
         (err, results) => {
-            if (err) throw err;
+            if (err) {
+                return res.status(500).json({ error: err.message || 'Database error' });
+            }
             res.json(results);
         }
     );
