@@ -44,14 +44,32 @@ jobs:
         DB_NAME: contacts_db
 
     - name: Slack notify (success)
-      if: success() && secrets.SLACK_WEBHOOK
+      if: success()
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
-        curl -s -X POST -H 'Content-type: application/json' --data "{\"text\":\"CI Success: ${{ github.workflow }} on ${{ github.ref }} (run ${{ github.run_id }})\"}" ${{ secrets.SLACK_WEBHOOK }}
+        if [ -n "$SLACK_WEBHOOK" ]; then
+          curl -s -X POST -H 'Content-type: application/json' --data "{\"text\":\"CI Success: $GITHUB_WORKFLOW on $GITHUB_REF (run $GITHUB_RUN_ID)\"}" "$SLACK_WEBHOOK"
+        else
+          echo "SLACK_WEBHOOK not set; skipping notification"
+        fi
 
     - name: Slack notify (failure)
-      if: failure() && secrets.SLACK_WEBHOOK
+      if: failure()
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
-        curl -s -X POST -H 'Content-type: application/json' --data "{\"text\":\"CI Failure: ${{ github.workflow }} on ${{ github.ref }} (run ${{ github.run_id }})\"}" ${{ secrets.SLACK_WEBHOOK }}
+        if [ -n "$SLACK_WEBHOOK" ]; then
+          curl -s -X POST -H 'Content-type: application/json' --data "{\"text\":\"CI Failure: $GITHUB_WORKFLOW on $GITHUB_REF (run $GITHUB_RUN_ID)\"}" "$SLACK_WEBHOOK"
+        else
+          echo "SLACK_WEBHOOK not set; skipping notification"
+        fi
 
   build:
     needs: test
