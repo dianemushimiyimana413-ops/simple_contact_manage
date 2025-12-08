@@ -1,0 +1,337 @@
+# Contact Manager - DevOps Pipeline Project
+
+A simple CRUD contact management application built with Node.js, Express, and MySQL, implementing a complete DevOps pipeline for learning and demonstration purposes.
+
+## 🚀 Features
+
+- **CRUD Operations**: Create, Read, Update, Delete contacts
+- **Search Functionality**: Search contacts by name, phone, or email
+- **Responsive UI**: Modern, clean frontend with real-time updates
+- **REST API**: RESTful endpoints for contact management
+- **Database Integration**: MySQL for persistent data storage
+- **Health Monitoring**: Built-in health check endpoints for monitoring
+- **Containerization**: Docker support with production-ready setup
+- **Multiple Test Endpoints**: Perfect for CI/CD testing and monitoring
+
+## 📋 Table of Contents
+
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [DevOps Features](#devops-features)
+- [Database Schema](#database-schema)
+- [Docker Setup](#docker-setup)
+- [Monitoring & Health Checks](#monitoring--health-checks)
+- [Development](#development)
+
+## 🏁 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- MySQL 8.0+
+- Docker & Docker Compose (recommended)
+
+### Docker Development (Recommended)
+
+```bash
+# Clone and navigate to project
+cd Simple_contact_manag
+
+# Start the entire stack
+docker-compose up -d
+
+# Access the application
+# Web UI: http://localhost:3000
+# MySQL: localhost:3306
+
+# View logs
+docker-compose logs -f app
+
+# Stop the services
+docker-compose down
+```
+
+### Local Development
+
+1. **Install dependencies:**
+```bash
+npm install
+```
+
+2. **Set up MySQL database:**
+```bash
+mysql -u root -p < db.sql
+```
+
+3. **Configure environment variables:**
+```bash
+export DB_HOST=localhost
+export DB_USER=root
+export DB_PASSWORD=password
+export DB_NAME=contacts_db
+export PORT=3000
+```
+
+4. **Start the application:**
+```bash
+npm run dev  # Development mode with nodemon
+npm start    # Production mode
+```
+
+5. **Access the application:**
+   - Web UI: http://localhost:3000
+   - API: http://localhost:3000/contacts
+
+## 📁 Project Structure
+
+```
+Simple_contact_manag/
+├── index.js                 # Main Express server with API routes
+├── package.json             # Node.js dependencies and scripts
+├── Dockerfile              # Multi-stage Docker build
+├── docker-compose.yml      # Development environment setup
+├── healthcheck.js          # Docker health check script
+├── db.sql                  # Database initialization script
+├── README.md               # This documentation
+└── public/
+    └── index.html          # Frontend application (HTML/CSS/JS)
+```
+
+## 🔗 API Endpoints
+
+### Contact Management
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|--------------|----------|
+| GET | `/contacts` | Get all contacts | - | `[{id, name, phone, email}]` |
+| POST | `/contacts` | Create new contact | `{name, phone, email}` | `{id, name, phone, email}` |
+| PUT | `/contacts/:id` | Update contact | `{name, phone, email}` | `{id, name, phone, email}` |
+| DELETE | `/contacts/:id` | Delete contact | - | `{message: "Deleted successfully"}` |
+| GET | `/contacts/search/:query` | Search contacts | - | `[{id, name, phone, email}]` |
+
+### Monitoring & Health
+
+| Method | Endpoint | Description | Response |
+|--------|----------|-------------|----------|
+| GET | `/health` | Health check (200/503) | `{status, message}` |
+| GET | `/status` | Service status | `{service, version, status, timestamp}` |
+
+### Example Requests
+
+**Create Contact:**
+```bash
+curl -X POST http://localhost:3000/contacts \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","phone":"123-456-7890","email":"john@example.com"}'
+```
+
+**Search Contacts:**
+```bash
+curl http://localhost:3000/contacts/search/john
+```
+
+**Check Health:**
+```bash
+curl http://localhost:3000/health
+```
+
+## 🚀 DevOps Features
+
+### Multiple Test Endpoints
+The application includes several endpoints for testing and monitoring:
+- `/health` - Database connectivity check
+- `/status` - Service status and version info
+- `/contacts` - Full CRUD testing
+- `/contacts/search/:query` - Search functionality testing
+
+### Container Orchestration
+- **Docker Compose**: Orchestrates MySQL and Node.js services
+- **Health Checks**: Both app and database have health checks
+- **Networking**: Custom bridge network for service communication
+- **Volume Management**: Persistent MySQL data storage
+
+### Error Handling
+- Database connection validation
+- Input validation on all endpoints
+- Proper HTTP status codes (200, 503)
+- Graceful error messages
+
+### Monitoring Ready
+- Health check endpoint returns database status
+- Status endpoint provides service information
+- All routes include error handling
+- Request/response logging ready
+
+## 💾 Database Schema
+
+### Contacts Table
+```sql
+CREATE TABLE contacts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### Sample Data
+The database is initialized with sample contacts from `db.sql`:
+- John Doe (123-456-7890)
+- Jane Smith (987-654-3210)
+- Emily Johnson (555-123-9876)
+
+## 🐳 Docker Setup
+
+### Docker Compose Configuration
+
+```yaml
+Services:
+  app:
+    - Node.js Express server on port 3000
+    - Health checks every 30 seconds
+    - Automatic restart on failure
+    
+  mysql:
+    - MySQL 8.0 database
+    - Port 3306 mapped to host
+    - Persistent volume for data
+    - Health checks enabled
+```
+
+### Building and Running
+
+```bash
+# Build custom images
+docker-compose build
+
+# Start services
+docker-compose up -d
+
+# View real-time logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Remove all data and volumes
+docker-compose down -v
+```
+
+## 📊 Monitoring & Health Checks
+
+### Health Check Endpoints
+
+**Database Health:**
+```bash
+curl http://localhost:3000/health
+# Response: {"status": "healthy", "message": "Contact Manager is running"}
+```
+
+**Service Status:**
+```bash
+curl http://localhost:3000/status
+# Response: {"service": "Contact Manager", "version": "1.0.0", "status": "running", "timestamp": "..."}
+```
+
+### Docker Health Checks
+
+The application includes Docker health checks:
+- App health check: Runs `healthcheck.js` every 30 seconds
+- MySQL health check: Checks connectivity every 10 seconds
+- Failed checks trigger container restart
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+npm start          # Production mode
+npm run dev        # Development with nodemon
+npm run test       # Run tests (setup required)
+npm run lint       # Check code quality
+npm run lint:fix   # Fix linting issues
+```
+
+### Environment Variables
+
+```bash
+DB_HOST          # MySQL host (default: localhost)
+DB_USER          # MySQL user (default: root)
+DB_PASSWORD      # MySQL password (default: password)
+DB_NAME          # Database name (default: contacts_db)
+PORT             # Server port (default: 3000)
+NODE_ENV         # Environment (production/development)
+```
+
+## 📈 DevOps Potential
+
+This project is designed for CI/CD and DevOps learning:
+
+1. **Multiple Testing Endpoints**: `/contacts`, `/health`, `/status` for testing
+2. **Container Ready**: Docker and docker-compose for deployment
+3. **Database Monitoring**: Health checks for MySQL connectivity
+4. **Simple Architecture**: Easy to understand and modify
+5. **Scalability Ready**: Can be extended to multiple instances
+6. **Logging Ready**: All endpoints can log for monitoring
+
+### CI/CD Integration Examples
+
+```bash
+# Health check in CI/CD
+curl -f http://localhost:3000/health || exit 1
+
+# API testing
+curl -X POST http://localhost:3000/contacts \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","phone":"111-1111","email":"test@test.com"}'
+
+# Status check
+curl http://localhost:3000/status | grep "running"
+```
+
+## 🐛 Troubleshooting
+
+### Application won't start
+```bash
+# Check logs
+docker-compose logs app
+
+# Verify MySQL is running
+docker-compose logs mysql
+
+# Ensure ports 3000 and 3306 are available
+lsof -i :3000
+lsof -i :3306
+```
+
+### Database connection failed
+```bash
+# Verify MySQL container
+docker-compose ps
+
+# Check MySQL logs
+docker-compose logs mysql
+
+# Restart services
+docker-compose restart
+```
+
+### Frontend not loading
+```bash
+# Clear browser cache
+# Check that public/index.html exists
+ls -la public/
+
+# Verify port 3000 is accessible
+curl http://localhost:3000
+```
+
+## 📝 License
+
+MIT
+
+## 👨‍💻 Author
+
+DevOps Student
