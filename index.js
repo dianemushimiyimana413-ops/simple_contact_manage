@@ -44,14 +44,6 @@ function initDb(cb) {
     }
 }
 
-// Ensure DB initialization runs on import (safe because initDb no-ops when DB is mocked)
-initDb(err => {
-    if (err) {
-        // don't throw during import — log and allow tests to handle failures
-        console.error('initDb error:', err && err.message ? err.message : err);
-    }
-});
-
 // Routes
 app.get('/contacts', (req, res) => {
     db.query('SELECT * FROM contacts', (err, results) => {
@@ -129,12 +121,13 @@ app.get('/status', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+let server = null;
 
 // Start server only when run directly. Ensure DB is initialized first.
 if (require.main === module) {
     initDb(err => {
         if (err) throw err;
-        app.listen(PORT, () => console.log(`Contact Manager running on port ${PORT}`));
+        server = app.listen(PORT, () => console.log(`Contact Manager running on port ${PORT}`));
     });
 }
 
@@ -143,5 +136,37 @@ function setDb(newDb) {
     db = newDb;
 }
 
-// export setDb so unit tests can replace the DB
-module.exports = { app, db, initDb, setDb };
+// allow callers/tests to read current DB instance
+function getDb() {
+    return db;
+}
+
+// close DB connection gracefully for test teardown / CI
+function closeDb(cb) {
+    if (db && typeof db.end === 'function') {
+        try {
+            db.end(err => {
+                if (cb) cb(err);
+            });
+        } catch (e) {
+            if (cb) cb(e);
+        }
+    } else {
+        if (cb) process.nextTick(() => cb && cb(null));
+    }
+}
+
+// close server for test teardown
+function closeServer(cb) {
+    if (server && typeof server.close === 'function') {
+        server.close(err => {
+            server = null;
+            if (cb) cb(err);
+        });
+    } else {
+        if (cb) process.nextTick(() => cb && cb(null));
+    }
+}
+
+// export setDb/getDb/initDb and close helpers
+module.exports = { app, initDb, setDb, getDb, closeDb, closeServer };

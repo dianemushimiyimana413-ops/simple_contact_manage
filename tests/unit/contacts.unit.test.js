@@ -5,21 +5,29 @@ describe('Unit tests - contacts routes (mocked DB)', () => {
     let mockDb;
 
     beforeEach(() => {
-        // Create a mock DB object with query method
+        // Create a mock DB object with query method that supports both signatures
         mockDb = {
             query: jest.fn((sql, params, callback) => {
-                // Mock responses based on SQL query type
-                if (sql.includes('SELECT *')) {
-                    callback(null, [{ id: 1, name: 'Unit Test', phone: '555-1234', email: 'test@example.com' }]);
-                } else if (sql.includes('INSERT')) {
-                    callback(null, { insertId: 1 });
-                } else if (sql.includes('UPDATE')) {
-                    callback(null, {});
-                } else if (sql.includes('DELETE')) {
-                    callback(null, {});
-                } else {
-                    callback(null, []);
+                // support (sql, callback) signature
+                if (typeof params === 'function') {
+                    callback = params;
+                    params = [];
                 }
+                // Provide responses for common queries
+                if (/SELECT \* FROM contacts/i.test(sql)) {
+                    return callback(null, [{ id: 1, name: 'Unit Test', phone: '555-1234', email: 'test@example.com' }]);
+                }
+                if (/INSERT INTO contacts/i.test(sql)) {
+                    return callback(null, { insertId: 1 });
+                }
+                if (/UPDATE contacts/i.test(sql)) {
+                    return callback(null, {});
+                }
+                if (/DELETE FROM contacts/i.test(sql)) {
+                    return callback(null, {});
+                }
+                // default
+                return callback(null, []);
             })
         };
         
