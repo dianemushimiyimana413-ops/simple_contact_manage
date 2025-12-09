@@ -1,35 +1,44 @@
 const request = require('supertest');
-
-// Mock mysql2 createConnection to avoid needing a real DB for unit tests
-jest.mock('mysql2', () => ({
-  createConnection: jest.fn(() => ({
-    query: (sql, params, cb) => {
-      // simple behavior for SELECT * FROM contacts
-      if (sql && sql.toString().toLowerCase().includes('select')) {
-        return cb(null, [{ id: 1, name: 'Unit Test', phone: '000', email: 'unit@test' }]);
-      }
-      // for other queries, simulate success
-      return cb(null, { insertId: 1 });
-    }
-  }))
-}));
-
-const { app } = require('../../index');
+const { app, setDb } = require('../../index');
 
 describe('Unit tests - contacts routes (mocked DB)', () => {
-  test('GET /contacts returns array', async () => {
-    const res = await request(app).get('/contacts');
-    expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body[0]).toHaveProperty('name', 'Unit Test');
-  });
+    let mockDb;
 
-  test('POST /contacts creates contact', async () => {
-    const res = await request(app)
-      .post('/contacts')
-      .send({ name: 'New', phone: '111', email: 'new@test' })
-      .set('Content-Type', 'application/json');
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('id');
-  });
+    beforeEach(() => {
+        // Create a mock DB object with query method
+        mockDb = {
+            query: jest.fn((sql, params, callback) => {
+                // Mock responses based on SQL query type
+                if (sql.includes('SELECT *')) {
+                    callback(null, [{ id: 1, name: 'Unit Test', phone: '555-1234', email: 'test@example.com' }]);
+                } else if (sql.includes('INSERT')) {
+                    callback(null, { insertId: 1 });
+                } else if (sql.includes('UPDATE')) {
+                    callback(null, {});
+                } else if (sql.includes('DELETE')) {
+                    callback(null, {});
+                } else {
+                    callback(null, []);
+                }
+            })
+        };
+        
+        // Inject the mock DB into the app
+        setDb(mockDb);
+    });
+
+    test('GET /contacts returns array', async () => {
+        const res = await request(app).get('/contacts');
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body[0]).toHaveProperty('name', 'Unit Test');
+    });
+
+    test('POST /contacts creates a contact', async () => {
+        const res = await request(app)
+            .post('/contacts')
+            .send({ name: 'John', phone: '555-5678', email: 'john@example.com' });
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toHaveProperty('id');
+    });
 });
