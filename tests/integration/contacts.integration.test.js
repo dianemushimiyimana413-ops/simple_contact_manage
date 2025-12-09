@@ -36,7 +36,7 @@ describe('Integration tests - contacts (mock DB)', () => {
 
   test('GET /contacts/search/:query responds with 200 and array', (done) => {
     request(app)
-      .get('/contacts/search/test')
+      .get('/contacts/search/john')
       .expect(200)
       .expect((res) => {
         if (!Array.isArray(res.body)) throw new Error('Response body is not an array');
