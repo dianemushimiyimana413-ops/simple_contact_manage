@@ -1,18 +1,17 @@
 const request = require('supertest');
 const { app, setDb, closeDb, closeServer } = require('../../index');
 
-describe('Integration tests - contacts (mock DB fallback)', () => {
+describe('Integration tests - contacts (mock DB)', () => {
   jest.setTimeout(10000);
 
   beforeAll(() => {
-    // Inject mock DB immediately; skip initDb to avoid connection attempts
+    // Inject mock DB immediately; skip initDb to avoid real connection attempts
     const mockDb = {
       query: (sql, params, cb) => {
         if (typeof params === 'function') {
           cb = params;
           params = [];
         }
-        // Return empty result sets for SELECT, basic success for INSERT/UPDATE/DELETE
         if (/^\s*SELECT/i.test(sql)) return cb && cb(null, []);
         if (/^\s*INSERT/i.test(sql)) return cb && cb(null, { insertId: 1 });
         return cb && cb(null, {});

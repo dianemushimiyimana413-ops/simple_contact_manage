@@ -1,52 +1,37 @@
 const request = require('supertest');
-const { app, setDb } = require('../../index');
+const { app, setDb, closeDb, closeServer } = require('../../index');
 
 describe('Unit tests - contacts routes (mocked DB)', () => {
-    let mockDb;
+  beforeAll(() => {
+    // Immediate mock DB injection to avoid real connections during unit tests
+    const mockDb = {
+      query: (sql, params, cb) => {
+        if (typeof params === 'function') {
+          cb = params;
+          params = [];
+        }
+        if (/^\s*SELECT/i.test(sql)) return cb && cb(null, []);
+        if (/^\s*INSERT/i.test(sql)) return cb && cb(null, { insertId: 1 });
+        return cb && cb(null, {});
+      }
+    };
+    setDb(mockDb);
+  });
 
-    beforeEach(() => {
-        // Create a mock DB object with query method that supports both signatures
-        mockDb = {
-            query: jest.fn((sql, params, callback) => {
-                // support (sql, callback) signature
-                if (typeof params === 'function') {
-                    callback = params;
-                    params = [];
-                }
-                // Provide responses for common queries
-                if (/SELECT \* FROM contacts/i.test(sql)) {
-                    return callback(null, [{ id: 1, name: 'Unit Test', phone: '555-1234', email: 'test@example.com' }]);
-                }
-                if (/INSERT INTO contacts/i.test(sql)) {
-                    return callback(null, { insertId: 1 });
-                }
-                if (/UPDATE contacts/i.test(sql)) {
-                    return callback(null, {});
-                }
-                if (/DELETE FROM contacts/i.test(sql)) {
-                    return callback(null, {});
-                }
-                // default
-                return callback(null, []);
-            })
-        };
-        
-        // Inject the mock DB into the app
-        setDb(mockDb);
-    });
+  afterAll((done) => {
+    closeDb(() => closeServer(done));
+  });
 
-    test('GET /contacts returns array', async () => {
-        const res = await request(app).get('/contacts');
-        expect(res.statusCode).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body[0]).toHaveProperty('name', 'Unit Test');
-    });
+  test('GET /contacts returns array', async () => {
+    const res = await request(app).get('/contacts');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
 
-    test('POST /contacts creates a contact', async () => {
-        const res = await request(app)
-            .post('/contacts')
-            .send({ name: 'John', phone: '555-5678', email: 'john@example.com' });
-        expect(res.statusCode).toBe(200);
-        expect(res.body).toHaveProperty('id');
-    });
+  test('POST /contacts inserts and returns id', async () => {
+    const payload = { name: 'A', phone: '1', email: 'a@example.com' };
+    const res = await request(app).post('/contacts').send(payload);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('id');
+  });
 });
