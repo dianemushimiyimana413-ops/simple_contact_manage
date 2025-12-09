@@ -310,7 +310,10 @@ let server = null;
 // Start server only when run directly. Ensure DB is initialized first.
 if (require.main === module) {
     initDb(err => {
-        if (err) throw err;
+        if (err) {
+            console.error('Failed to initialize database:', err.message);
+            process.exit(1);
+        }
         server = app.listen(PORT, () => console.log(`Contact Manager running on port ${PORT}`));
     });
 }
