@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-contact-manager
+  namespace: production
+  labels:
+    app: simple-contact-manager
+spec:
+  # Rolling update strategy with controlled pod replacement
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1              # Maximum number of extra pods during update (1 = 25% of replicas)
+      maxUnavailable: 0        # Ensure zero downtime (0 pods can be unavailable)
+  
+  # Number of replicas for high availability
+  replicas: 3
+  
+  selector:
+    matchLabels:
+      app: simple-contact-manager
+  
+  template:
+    metadata:
+      labels:
+        app: simple-contact-manager
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      
+      # Pod restart policy
+      restartPolicy: Always
+      
+      # Image pull secrets (if using private registry)
+      imagePullSecrets:
+        - name: dockerhub-secret
+      
+      # Init containers can run setup tasks
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z mysql-service.production.svc.cluster.local 3306; do echo waiting for mysql; sleep 2; done;']
+      
+      containers:
+      - name: app
+        image: dianemushimiyimana413/simple_contact_manager:latest
+        imagePullPolicy: IfNotPresent
+        
+        # Port configuration
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        
+        # Environment variables from ConfigMap and Secrets
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: db.host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: db.port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: db.name
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: db.user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: db-password
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: log.level
+        
+        # Resource requests and limits with calculated requirements
+        resources:
+          # Requests: guaranteed minimum resources for scheduling
+          requests:
+            cpu: 100m          # 0.1 CPU cores (100 milliCPU)
+            memory: 128Mi      # 128 MiB RAM
+          # Limits: maximum resources the pod can use
+          limits:
+            cpu: 500m          # 0.5 CPU cores - enough for typical traffic
+            memory: 512Mi      # 512 MiB RAM - sufficient for Node.js app + caching
+        
+        # Liveness probe: restart container if unhealthy
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Readiness probe: stop sending traffic if not ready
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Startup probe: give the app time to start up
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+        
+        # Volume mounts
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+        
+        # Security context for the container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+      
+      # Pod affinity rules for better distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - simple-contact-manager
+              topologyKey: kubernetes.io/hostname
+      
+      # Volumes
+      volumes:
+      - name: app-logs
+        emptyDir: {}

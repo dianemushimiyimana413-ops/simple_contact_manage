@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simple-contact-manager
+  labels:
+    app: simple-contact-manager
+spec:
+  selector:
+    app: simple-contact-manager
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: production
+  labels:
+    app: mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+    protocol: TCP

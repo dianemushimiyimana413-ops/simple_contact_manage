@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: simple-contact-manager-netpol
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: simple-contact-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from load balancer
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow from same namespace
+  - from:
+    - podSelector: {}
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow to MySQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mysql
+    ports:
+    - protocol: TCP
+      port: 3306
+  # Allow external APIs
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
