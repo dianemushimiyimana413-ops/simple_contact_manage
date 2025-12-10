@@ -1,5 +1,13 @@
 # simple_contact_manage
-sers can save contacts (name, phone, email).  MySQL database stores contacts.  Can search, update, delete contacts.  DevOps Potential:  Multiple endpoints for testing  Simple container → perfect for CI/CD  Easy to monitor database connections
+Users can save contacts (name, phone, email). MySQL database stores contacts.  
+Can search, update, delete contacts.  
+
+### DevOps Potential:
+- Multiple endpoints for automated testing  
+- Simple container → perfect for CI/CD  
+- Easy to monitor database connections  
+
+---
 
 # Contact Manager
 
@@ -12,3 +20,8 @@ Quick start:
 - Lint: npm run lint
 
 Docker / docker-compose are included for local DB integration.
+
+---
+
+### 🔁 Pipeline Trigger Note
+This line was added to trigger the GitHub Actions pipeline for Phase 5.
