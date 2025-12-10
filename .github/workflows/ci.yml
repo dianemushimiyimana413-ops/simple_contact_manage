@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: 
+    branches:
       - main
   pull_request:
 
@@ -60,3 +60,4 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/simple_contact_manage:v1.0.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
