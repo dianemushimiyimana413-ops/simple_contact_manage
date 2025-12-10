@@ -1,7 +1,7 @@
 {
   "name": "contact-manager",
   "version": "1.0.0",
-  "description": "Simple Contact Manager with MySQL database and DevOps pipeline",
+  "description": "Simple contact manager API and UI",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,8 +9,24 @@
     "init-db": "node scripts/init-db.js",
     "test": "jest --runInBand",
     "test:local": "npm run init-db && npm test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "docker:build": "docker build -t $npm_package_dockerImage:latest .",
+    "docker:push": "docker push $npm_package_dockerImage:latest",
+    "release": "npm version patch -m \"chore(release): %s\" && git push origin --follow-tags"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dianemushimiyimana413/simple-contact-manager.git"
+  },
+  "keywords": [
+    "contacts",
+    "express",
+    "mysql",
+    "docker"
+  ],
+  "author": "dianemushimiyimana413",
+  "license": "MIT",
+  "dockerImage": "dianemushimiyimana413/simple-contact-manager",
   "dependencies": {
     "body-parser": "^1.20.4",
     "cors": "^2.8.5",
@@ -22,15 +38,5 @@
     "jest": "^29.7.0",
     "nodemon": "^3.1.11",
     "supertest": "^6.3.4"
-  },
-  "keywords": [
-    "nodejs",
-    "express",
-    "mysql",
-    "devops",
-    "contacts",
-    "crud"
-  ],
-  "author": "DevOps Student",
-  "license": "MIT"
+  }
 }
