@@ -24,22 +24,49 @@ jobs:
         run: npm test --silent
 
   build-image:
+    name: Build Docker image (no push)
     runs-on: ubuntu-latest
     needs: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image (do not push)
+      - name: Build Docker image locally
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ghcr.io/${{ github.repository_owner }}/simple-contact-manager:ci-latest
+          tags: simple-contact-manager:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  push-image:
+    name: Push Docker image to DockerHub
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/simple-contact-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
